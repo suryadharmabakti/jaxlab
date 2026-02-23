@@ -39,7 +39,7 @@ const Header: React.FC = () => {
                     <a onClick={() => handleNavigation('/products')} style={{ cursor: 'pointer' }}>Produk Kami</a>
                     <a onClick={() => handleNavigation('/about')} style={{ cursor: 'pointer' }}>Tentang JaxLab</a>
                     {/* Updated Link */}
-                    <a onClick={() => navigate('/contact')} style={{ cursor: 'pointer' }}>Hubungi Kami</a>
+                    <a onClick={() => handleNavigation('/contact')} style={{ cursor: 'pointer' }}>Hubungi Kami</a>
                     <div className="mobile-only" style={{ marginTop: '20px' }}>
                         <button className="join-btn">Join Healthy Partner</button>
                     </div>

@@ -1,83 +1,51 @@
 import React, { useState } from 'react';
-import '../components/ProductSection.css'; // Will use same base styles or new ones
+import '../components/ProductSection.css';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-interface Product {
-    id: number;
-    name: string;
-    description: string;
-    price: number;
-    category: string;
-    image: string;
-}
-
-const productsData: Product[] = [
-    {
-        id: 1,
-        name: "Maknum Saber",
-        description: "Maknum Saber",
-        price: 0,
-        category: "Multivitamin",
-        image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"
-    },
-    {
-        id: 2,
-        name: "Aliquam provident p",
-        description: "Enim saepe incididun",
-        price: 12000,
-        category: "Essential Oil",
-        image: "https://images.unsplash.com/photo-1608571423902-eed4a5e84d85?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"
-    },
-    {
-        id: 3,
-        name: "Premium Laptop (Mock)",
-        description: "High performance device",
-        price: 15000000,
-        category: "Laptop",
-        image: "https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"
-    },
-    {
-        id: 4,
-        name: "Organic Honey",
-        description: "Pure organic honey",
-        price: 75000,
-        category: "Healthy Food",
-        image: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"
-    },
-    {
-        id: 5,
-        name: "Vitamin C Boost",
-        description: "Immune system support",
-        price: 45000,
-        category: "Multivitamin",
-        image: "https://images.unsplash.com/photo-1624638760086-44445672803b?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"
-    }
-];
-
-const categories = ["All", "Laptop", "PC", "SmartPhone", "Aksesoris", "Lainnya"];
+import { getAllProducts, getCategories, formatRupiah } from '../database/db';
 
 const ProductsPage: React.FC = () => {
     const navigate = useNavigate();
+
+    // Dipanggil di DALAM komponen — DB sudah siap saat ini
+    const allProducts = getAllProducts();
+    const dbCategories = getCategories();
+    const productCategories = ['All', ...dbCategories];
+
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
-    const filteredProducts = productsData.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredProducts = allProducts.filter(product => {
+        const matchesSearch =
+            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.description.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-        return matchesSearch && (selectedCategory === 'All' || matchesCategory);
+        return matchesSearch && matchesCategory;
     });
+
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    const paginatedProducts = filteredProducts.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handleCategoryChange = (cat: string) => {
+        setSelectedCategory(cat);
+        setCurrentPage(1);
+    };
 
     return (
         <div className="products-page">
-            <Header /> {/* Reusing Header */}
+            <Header />
             <main style={{ paddingTop: '2rem' }}>
                 <section className="product-section">
                     <div className="container">
                         <div className="section-header text-center">
+                            <span className="tag-pill">Produk Alami JaxLab</span>
                             <h2 className="title-green">Good Food Starts Here</h2>
                             <p className="subtitle">Pilihan produk alami untuk mendukung gaya hidup sehat Anda.</p>
                         </div>
@@ -87,20 +55,22 @@ const ProductsPage: React.FC = () => {
                             <div className="search-input-box">
                                 <input
                                     type="text"
-                                    placeholder="Cari produk..."
+                                    placeholder="Cari produk JaxLab..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
                                 />
                                 <Search className="search-icon-input" size={18} />
                             </div>
 
-                            {/* Category Filter Pills */}
                             <div className="filter-pills">
-                                {categories.map((category) => (
+                                {productCategories.map((category) => (
                                     <button
                                         key={category}
                                         className={`filter-pill ${selectedCategory === category ? 'active' : ''}`}
-                                        onClick={() => setSelectedCategory(category)}
+                                        onClick={() => handleCategoryChange(category)}
                                     >
                                         {category}
                                     </button>
@@ -108,31 +78,68 @@ const ProductsPage: React.FC = () => {
                             </div>
                         </div>
 
+                        <p style={{ textAlign: 'center', color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                            Menampilkan <strong>{filteredProducts.length}</strong> produk
+                            {selectedCategory !== 'All' && ` dalam kategori "${selectedCategory}"`}
+                            {searchTerm && ` untuk "${searchTerm}"`}
+                        </p>
+
                         <div className="product-grid">
-                            {filteredProducts.map((product) => (
+                            {paginatedProducts.length > 0 ? paginatedProducts.map((product) => (
                                 <div key={product.id} className="product-card">
+                                    {product.badge && (
+                                        <span className={`product-badge badge-${product.badge.toLowerCase().replace(/\s/g, '-')}`}>
+                                            {product.badge}
+                                        </span>
+                                    )}
                                     <div className="product-image-wrapper">
-                                        <img src={product.image} alt={product.name} />
+                                        <img src={product.images[0]} alt={product.name} />
                                     </div>
                                     <div className="product-info">
+                                        <span className="product-category-tag">{product.category}</span>
                                         <h3>{product.name}</h3>
                                         <p className="product-desc">{product.description}</p>
-                                        <p className="product-price">
-                                            {product.price === 0 ? "Rp 0" : `Rp ${product.price.toLocaleString('id-ID')}`}
-                                        </p>
-                                        <button className="details-btn-outlined" onClick={() => navigate(`/products/${product.id}`)}>Details</button>
+                                        <div className="price-group">
+                                            <p className="product-price">{formatRupiah(product.price)}</p>
+                                            {product.originalPrice && (
+                                                <p className="product-price-original">{formatRupiah(product.originalPrice)}</p>
+                                            )}
+                                        </div>
+                                        <div className="stock-indicator" data-status={product.stockStatus}>
+                                            {product.stockStatus}
+                                        </div>
+                                        <button
+                                            className="details-btn-outlined"
+                                            onClick={() => navigate(`/products/${product.id}`)}
+                                        >
+                                            Lihat Detail
+                                        </button>
                                     </div>
                                 </div>
-                            ))}
+                            )) : (
+                                <div className="no-results">
+                                    <p>Produk tidak ditemukan. Coba kata kunci lain.</p>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="pagination-container text-center">
-                            <button className={`page-btn ${currentPage === 1 ? 'active' : ''}`} onClick={() => setCurrentPage(1)}>1</button>
-                        </div>
+                        {totalPages > 1 && (
+                            <div className="pagination-container text-center">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                        key={page}
+                                        className={`page-btn ${currentPage === page ? 'active' : ''}`}
+                                        onClick={() => setCurrentPage(page)}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </section>
             </main>
-            <Footer /> {/* Reusing Footer */}
+            <Footer />
         </div>
     );
 };
